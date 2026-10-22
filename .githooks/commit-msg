@@ -1,0 +1,8 @@
+#!/bin/sh
+first_line=$(head -n 1 "$1")
+pattern='^(feat|fix|docs|chore|refactor|merge|test|ci|build|perf|style)(\([^)]*\))?!?: .+'
+if ! printf '%s\n' "$first_line" | LC_ALL=C grep -Eq "$pattern"; then
+    echo "ОШИБКА: сообщение не соответствует Conventional Commits."
+    echo "Ожидаемый формат: <type>: <description>"
+    exit 1
+fi
