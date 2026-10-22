@@ -12,3 +12,5 @@
 - Git / GitHub
 - Python
 - Docker (следующий блок)
+
+# Multi-remote test
