@@ -222,3 +222,8 @@ Git, rsync приводит каталог назначения к site/ и за
 CURL_RESOLVE=devops.local:443:192.168.56.2 scripts/deploy.sh. Это задаёт адрес
 только curl, сохраняет проверку SAN и подписи и не заменяет требуемый шаг
 настройки /etc/hosts. После настройки hosts переменная не нужна.
+
+На macOS 27 системный openrsync отвергает числовой параметр --chmod=D755,F644.
+Установлен GNU rsync 3.5.1 командой brew install rsync. Сценарий deploy.sh
+использует /opt/homebrew/bin/rsync на Mac, если он установлен; на Ubuntu — rsync
+из PATH. Запуски из подкаталога docs и проверка изменений в индексе также пройдены.
