@@ -180,3 +180,45 @@ network:
 && sudo netplan apply. Маршрут по умолчанию только через 10.0.2.2.
 Исходящий Интернет проверен обновлением apt. Адрес Host-only остаётся
 192.168.56.2, адрес Mac 192.168.56.1.
+
+## 8. Веб-сервер
+
+Пакеты: nginx и rsync из Ubuntu. Конфигурация ресурса:
+/etc/nginx/sites-available/devops-site; активная символическая ссылка
+/etc/nginx/sites-enabled/devops-site. Стандартная ссылка default удалена,
+исходный файл sites-available/default сохранён.
+
+Каталог /var/www/devops-site принадлежит devops:devops. Каталоги 755,
+файлы 644; www-data читает и не может писать. Логи:
+/var/log/nginx/devops-site.access.log и devops-site.error.log.
+
+Создание сертификата (365 дней):
+
+```bash
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+ -keyout /etc/ssl/private/devops.key -out /etc/ssl/certs/devops.crt \
+ -subj '/CN=devops.local' -addext 'subjectAltName=DNS:devops.local'
+sudo chmod 600 /etc/ssl/private/devops.key
+sudo chmod 644 /etc/ssl/certs/devops.crt
+sudo chown root:root /etc/ssl/private/devops.key /etc/ssl/certs/devops.crt
+```
+
+Закрытый ключ остаётся на сервере. На Mac копируется только сертификат:
+scp devops:/etc/ssl/certs/devops.crt ~/devops.crt. Проверка:
+curl --cacert ~/devops.crt https://devops.local.
+Конфигурация размещена в config/nginx-devops-site.conf.
+HTTP перенаправляется кодом 301 на HTTPS; TLSv1.2 и TLSv1.3, SAN devops.local,
+HSTS не задаётся. Все изменения: sudo nginx -t && sudo systemctl reload nginx.
+Снимок 04-nginx-https создаётся после проверки TLS.
+
+Доставка: scripts/deploy.sh либо scripts/deploy.sh --dry-run.
+Сценарий находит корень по собственному пути, проверяет index.html и чистоту
+Git, rsync приводит каталог назначения к site/ и задаёт D755,F644. curl -f
+с --cacert проверяет результат. SSH BatchMode исключает интерактивный запрос.
+Один вызов rsync использует одно SSH-соединение. Выполненные аварийные
+испытания восстановлены штатной доставкой.
+
+Если запись hosts на Mac ещё не внесена, для технической проверки допустим
+CURL_RESOLVE=devops.local:443:192.168.56.2 scripts/deploy.sh. Это задаёт адрес
+только curl, сохраняет проверку SAN и подписи и не заменяет требуемый шаг
+настройки /etc/hosts. После настройки hosts переменная не нужна.
