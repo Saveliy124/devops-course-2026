@@ -30,8 +30,8 @@ VBoxManage controlvm devops-vm natpf1 'ssh,tcp,127.0.0.1,2222,,2222'
 
 ## 4. Учётные записи
 
-student — исходная учётная запись установщика, группа sudo.
-devops — отдельная административная запись, группы devops,sudo.
+student — исходная учётная запись установщика; группы student, adm, cdrom, sudo, dip, plugdev, lxd.
+devops — отдельная административная запись; после ПР5 группы devops, sudo, users; после ПР7 дополнительно docker.
 SSH после hardening разрешён только devops, по ключу; sudo использует пароль devops.
 Пароли student и devops сохранены владельцем стенда вне репозитория.
 
@@ -99,6 +99,10 @@ sudo ufw status verbose
 01-clean-install — установка и обновление Ubuntu, до devops и hardening.
 02-keys-configured — создан devops, настроен вход по ключу, SSH ещё на 22.
 03-ssh-hardened — проверены порт 2222, запрет root и пароля.
+04-nginx-https — после проверки TLS в ПР6.
+05-docker-compose — после проверки контейнеров и тома в ПР7.
+05a-atomic-web-deploy — факультативная схема атомарных релизов.
+06-before-kr2 — до развёртывания КР2; 07-kr2 — проверенный итог КР2.
 Снимки и виртуальную машину после сдачи не удалять.
 
 ### Восстановление со снимка 01-clean-install
