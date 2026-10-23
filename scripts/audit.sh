@@ -32,6 +32,12 @@ openssl x509 -checkend "$cert_seconds" -noout -in /etc/ssl/certs/devops.crt >/de
 check 'Сертификат действителен не менее 30 дней' 0 "$cert_rc"
 check 'Нет файлов с записью для всех и ключ имеет права 600' yes "$(if [[ -z "$(find /var/www/devops-site -perm -o+w -print)" && "$(sudo stat -c '%a' /etc/ssl/private/devops.key)" == 600 ]]; then echo yes; else echo no; fi)"
 
+echo '[5] Контейнеризация'
+check 'Docker активен' active "$(systemctl is-active docker)"
+check 'PostgreSQL healthy' healthy "$(docker inspect -f '{{.State.Health.Status}}' app-db-1 2>/dev/null)"
+check 'Порты 5000 и 5432 не открыты наружу' yes "$(if ss -H -tln | awk '$4 ~ /:(5000|5432)$/ && $4 !~ /^127\.0\.0\.1:/ {bad=1} END {exit bad}'; then echo yes; else echo no; fi)"
+check 'Права app/.env равны 600' 600 "$(stat -c '%a' "$HOME/app/.env")"
+
 # ADDITIONAL_CHECKS
 echo "Пройдено: $PASS, не пройдено: $FAIL"
 [[ $FAIL -eq 0 ]] && exit 0 || exit 1

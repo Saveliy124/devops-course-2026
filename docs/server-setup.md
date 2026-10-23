@@ -227,3 +227,52 @@ CURL_RESOLVE=devops.local:443:192.168.56.2 scripts/deploy.sh. Это задаё�
 Установлен GNU rsync 3.5.1 командой brew install rsync. Сценарий deploy.sh
 использует /opt/homebrew/bin/rsync на Mac, если он установлен; на Ubuntu — rsync
 из PATH. Запуски из подкаталога docs и проверка изменений в индексе также пройдены.
+
+## 9. Контейнеризация
+
+Docker Engine установлен из официального apt-репозитория download.docker.com,
+пакет docker-ce вместе с containerd.io, docker-ce-cli, buildx и compose plugin.
+Пакет docker.io не используется. Фактическая версия фиксируется командой
+docker version и в журнале работы. Учётная запись devops входит в sudo и docker;
+группа docker фактически даёт права root и не выдаётся непривилегированным лицам.
+
+Проект расположен /home/devops/app. /home/devops/app/.env принадлежит devops,
+права 600, создан на сервере со случайным паролем PostgreSQL. Его не копируют
+на Mac. При rsync обязательно --exclude=.env, чтобы --delete не удалял секрет.
+
+Приложение Flask/Gunicorn основано на python:3.12-slim, работает как app,
+слушает 0.0.0.0:5000 внутри контейнера. На сервере публикация только
+127.0.0.1:5000:5000. PostgreSQL postgres:16-alpine не публикует 5432,
+хранит данные в app_db_data, /var/lib/postgresql/data. Оба сервиса подключены
+к app_backend. DB_HOST=db разрешается встроенным DNS Docker.
+depends_on service_healthy ждёт pg_isready. restart: unless-stopped.
+
+Nginx сохраняет статический ресурс; в HTTPS-блок добавлено:
+
+```nginx
+location /app/ {
+    proxy_pass http://127.0.0.1:5000/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+Завершающий / удаляет префикс /app/ из URI к приложению.
+Снимок 05-docker-compose сохраняет рабочий проект. down сохраняет том,
+down -v удаляет его и выполнен только в предусмотренном учебном опыте
+до появления важных данных. На окончательном стенде том сохранён.
+
+На этом стенде Docker Engine 29.9.2, Docker Compose 5.6.1. UDP-разрешение
+внешних имён из Docker работало с задержками и ошибками; DNS через TCP
+проверен успешно. /etc/docker/daemon.json:
+
+```json
+{"dns": ["8.8.8.8", "1.1.1.1"], "dns-opts": ["use-vc"]}
+```
+
+Перед применением: sudo dockerd --validate --config-file /etc/docker/daemon.json,
+затем sudo systemctl restart docker. Файл воспроизведения — config/docker-daemon.json.
+При изменении членов группы docker нужна новая физическая SSH-сессия; прежний
+ControlMaster закрывается командой ssh -O exit devops.
