@@ -38,6 +38,15 @@ check 'PostgreSQL healthy' healthy "$(docker inspect -f '{{.State.Health.Status}
 check 'Порты 5000 и 5432 не открыты наружу' yes "$(if ss -H -tln | awk '$4 ~ /:(5000|5432)$/ && $4 !~ /^127\.0\.0\.1:/ {bad=1} END {exit bad}'; then echo yes; else echo no; fi)"
 check 'Права app/.env равны 600' 600 "$(stat -c '%a' "$HOME/app/.env")"
 
+echo '[6] Контрольная работа 2'
+redis_id="$(docker compose --project-directory "$HOME/kr2" ps -q redis)"
+check 'Redis healthy' healthy "$(docker inspect -f '{{.State.Health.Status}}' "$redis_id" 2>/dev/null)"
+check 'Порт 8002 опубликован только на 127.0.0.1' 127.0.0.1:8002 "$(docker compose --project-directory "$HOME/kr2" port app 8002)"
+check 'Права kr2/.env равны 600' 600 "$(stat -c '%a' "$HOME/kr2/.env")"
+openssl x509 -checkend 2592000 -noout -in /etc/ssl/certs/kr2.crt >/dev/null 2>&1; kr2_cert_rc=$?
+check 'Сертификат KR2 действителен не менее 30 дней' 0 "$kr2_cert_rc"
+check 'Ресурс KR2 активирован' yes "$(if [[ -L /etc/nginx/sites-enabled/kr2 ]]; then echo yes; else echo no; fi)"
+
 # ADDITIONAL_CHECKS
 echo "Пройдено: $PASS, не пройдено: $FAIL"
 [[ $FAIL -eq 0 ]] && exit 0 || exit 1
