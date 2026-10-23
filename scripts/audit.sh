@@ -30,7 +30,7 @@ check 'Конфигурация Nginx корректна' 0 "$nginx_rc"
 cert_seconds="${CERT_MIN_SECONDS:-2592000}"
 openssl x509 -checkend "$cert_seconds" -noout -in /etc/ssl/certs/devops.crt >/dev/null 2>&1; cert_rc=$?
 check 'Сертификат действителен не менее 30 дней' 0 "$cert_rc"
-check 'Нет файлов с записью для всех и ключ имеет права 600' yes "$(if [[ -z "$(find /var/www/devops-site -perm -o+w -print)" && "$(sudo stat -c '%a' /etc/ssl/private/devops.key)" == 600 ]]; then echo yes; else echo no; fi)"
+check 'Нет файлов с записью для всех и ключ имеет права 600' yes "$(if [[ -z "$(find /var/www/devops-site \( -type f -o -type d \) -perm -o+w -print)" && "$(sudo stat -c '%a' /etc/ssl/private/devops.key)" == 600 ]]; then echo yes; else echo no; fi)"
 
 echo '[5] Контейнеризация'
 check 'Docker активен' active "$(systemctl is-active docker)"
